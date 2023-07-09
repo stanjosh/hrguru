@@ -1,0 +1,28 @@
+{
+  "name": "hrguru",
+  "version": "1.0.0",
+  "description": "Employee management via the command line",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/stanjosh/hrguru.git"
+  },
+  "author": "Joshua Stanford",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/stanjosh/hrguru/issues"
+  },
+  "homepage": "https://github.com/stanjosh/hrguru#readme",
+  "dependencies": {
+    "cli-table": "^0.3.11",
+    "inquirer": "^9.2.7",
+    "mysql2": "^3.5.0"
+  },
+  "devDependencies": {
+    "jest": "^29.6.1"
+  }
+}
