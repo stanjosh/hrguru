@@ -2,38 +2,39 @@ import inquirer from "inquirer";
 import db from "./remote_db.js"
 import Table from "cli-table"
 const usd = new Intl.NumberFormat('en-US');
+const ui = new inquirer.ui.BottomBar();
 
-const showMenu = async () => {
 
-    const goBack = () => {
-        
-    }
-    const goMainMenu = () => {
-        
-    }
-    const exit = () => {
+const appMenu = async () => {
+
+    let choice = await mainMenu()
+    console.log(await choice.action())
     
-    }
-
-    const menuOptions = [
-        {
-            name: "Go back",
-            value: goBack
-        },
-        {
-            name: "Main menu",
-            value: goMainMenu
-        },
-        {
-            name: "Exit application",
-            value: exit
-        }
-    ]
     
-    const employeeMenu = await inquirer.prompt([
+    // switch (choice.action) {
+    //     case 'appExit':
+
+    //         db.endConnections();
+    //         console.info("Goodbye!")
+    //         break
+    //     case 'createEmployee':
+    //         console.info(choice.action)
+    //         createEmployee()
+    //         break
+    //     default:
+    //         console.clear()
+    //         mainMenu()
+    //         break
+    // }
+    
+}
+
+const mainMenu = async (menu) => {
+    var menu = menu ? menu : 'mainMenu'
+    const employeeMenu = [
         {
             type: "list",
-            name: "employeeMenu",
+            name: "action",
             message: "Employee Menu",
             choices: [
                 {
@@ -42,21 +43,24 @@ const showMenu = async () => {
                 },
                 {
                     name: "Add employee",
-                    value: 'createEmployee'
+                    value: createEmployee
                 },
                 {
                     name: "Edit employee",
                     value: 'editEmployee'
                 },
-                ...menuOptions
+                {
+                    name: "Main menu",
+                    value: 'mainMenu'
+                },
             ]
         }
-    ])
+    ]
 
-    const roleMenu = await inquirer.prompt([
+    const roleMenu = [
         {
             type: "list",
-            name: "roleMenu",
+            name: "action",
             message: "Role Menu",
             choices: [
                 {
@@ -71,35 +75,41 @@ const showMenu = async () => {
                     name: "Edit role",
                     value: 'editRole'
                 },
-                ...menuOptions
+                {
+                    name: "Main menu",
+                    value: 'mainMenu'
+                },
             ]
         }
-    ])
+    ]
 
-    const departmentMenu = await inquirer.prompt([
+    const departmentMenu = [
         {
             type: "list",
-            name: "departmentMenu",
+            name: "action",
             message: "department Menu",
             choices: [
                 {
                     name: "View departments",
-                    value: 'showDepartments'
+                    value: showDepartments
                 },
                 {
                     name: "Add department",
-                    value: 'createdepartment'
+                    value: 'createDepartment'
                 },
                 {
                     name: "Edit department",
                     value: 'editRole'
                 },
-                ...menuOptions
+                {
+                    name: "Main menu",
+                    value: 'mainMenu'
+                },
             ]
         }
-    ])
+    ]
 
-    const mainMenu = await inquirer.prompt ([
+    const mainMenu = [
         {
             type: "list",
             name: "main",
@@ -107,80 +117,28 @@ const showMenu = async () => {
             choices: [
                 {
                     name: "Employees",
-                    value: 'employeeMenu'
+                    value: employeeMenu
                 },
                 {
                     name: "Roles",
-                    value: 'roleMenu'
+                    value: roleMenu
                 },
                 {
                     name: "Departments",
-                    value: 'departmentMenu'
+                    value: departmentMenu
                 },
-                ...menuOptions
+                {
+                    name: "Exit application",
+                    value: 'appExit'
+                }
             ]
 
         }
-    ])
-
-    console.log({...mainMenu})
+    ]
+    return await inquirer.prompt({...await inquirer.prompt(mainMenu)}.main)
+}
     
-}
-
-
-
-
-
-
-const showDepartments = async () => {
-    let list = []
-    return await db.departments.getAll()
-    .then(data => {
-        data.map((i) => {
-            list.push({ 
-                name:`${i.name}`, 
-                value: `${i.id}`
-            })
-        })
-    })
-    .then(() => {
-        return list
-    })
-}
-
-const getRoles = async () => {
-    let list = []
-    return await db.roles.getAll()
-    .then(data => {
-        data.map((i) => {
-            list.push({ 
-                name:`${i.title}`, 
-                value: `${i.id}`
-            })
-        })
-    })
-    .then(() => {
-        return list
-    })
-}
-
-
 const createEmployee = async () => {
-    const getDeptMgrsByRole = async (role) => {
-        let list = []
-        return await db.departments.getManagersByRole(role)
-        .then(data => {
-            data.map((i) => {
-                list.push({ 
-                    name:`${i.first_name} ${i.last_name}, ${i.role} in ${i.department}`, 
-                    value: `${i.id}`
-                })
-            })
-        })
-        .then(() => {
-            return list
-        })
-    }
 
     const employeeNameQuestions = await inquirer.prompt([
         {
@@ -224,6 +182,45 @@ const createEmployee = async () => {
 
 
 
+
+
+
+
+
+
+const showDepartments = async () => {
+    let list = []
+    return await db.departments.getAll()
+    .then(data => {
+        data.map((i) => {
+            list.push({ 
+                name:`${i.name}`, 
+                value: `${i.id}`
+            })
+        })
+    })
+    .then(() => {
+        return list
+    })
+}
+
+const getRoles = async () => {
+    let list = []
+    return await db.roles.getAll()
+    .then(data => {
+        data.map((i) => {
+            list.push({ 
+                name:`${i.title}`, 
+                value: `${i.id}`
+            })
+        })
+    })
+    .then(() => {
+        return list
+    })
+}
+
+
 const showEmployees = async () => {
     let list = []
     return await db.employees.getAll()
@@ -241,7 +238,21 @@ const showEmployees = async () => {
 }
 
 
-
+const getDeptMgrsByRole = async (role) => {
+    let list = []
+    return await db.departments.getManagersByRole(role)
+    .then(data => {
+        data.map((i) => {
+            list.push({ 
+                name:`${i.first_name} ${i.last_name}, ${i.role} in ${i.department}`, 
+                value: `${i.id}`
+            })
+        })
+    })
+    .then(() => {
+        return list
+    })
+}
 
 
 
@@ -268,7 +279,7 @@ const showRoles = async () => {
 
 
 
-export default { showMenu }
+export default { appMenu }
 
 const todo = `
 viewAllEmployees, 
