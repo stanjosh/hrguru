@@ -63,7 +63,7 @@ const employees = {
         return rows
     },
 
-    getAllInfo : async (...id) => {
+    getInfoByID : async (...id) => {
         let [rows, fields] = await db.query(
             `
             select 
@@ -82,8 +82,32 @@ const employees = {
             `
         )
         return rows
-    }
+    },
 
+    getAllInfo : async () => {
+        let [rows, fields] = await db.query(
+            `
+            select 
+                *,
+                role.title as 'role',
+                department.name as 'department',
+                department.id,
+                role.department_id,
+                role.id
+            from 
+                employee
+            left join 
+                role 
+            on
+                role.id = employee.role_id
+            right join
+                department
+            on
+                department.id = role.department_id
+            `
+        )
+        return rows
+    }
 }
 
 const roles = {

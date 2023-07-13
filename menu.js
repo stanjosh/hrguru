@@ -5,10 +5,10 @@ const usd = new Intl.NumberFormat('en-US');
 const ui = new inquirer.ui.BottomBar();
 
 
-const appMenu = async () => {
-
+const appMenu = async (menu) => {
+    var menu = menu ? menu : 'mainMenu'
     let choice = await mainMenu()
-    console.log(await choice.action())
+    console.info(await choice.action())
     
     
     // switch (choice.action) {
@@ -29,8 +29,14 @@ const appMenu = async () => {
     
 }
 
-const mainMenu = async (menu) => {
-    var menu = menu ? menu : 'mainMenu'
+const exitApp = async () => {
+    db.endConnections()
+    return 'Goodbye!'
+}
+
+
+const mainMenu = async () => {
+    
     const employeeMenu = [
         {
             type: "list",
@@ -39,7 +45,7 @@ const mainMenu = async (menu) => {
             choices: [
                 {
                     name: "View employees",
-                    value: 'showEmployees'
+                    value: showEmployeeTable
                 },
                 {
                     name: "Add employee",
@@ -51,7 +57,7 @@ const mainMenu = async (menu) => {
                 },
                 {
                     name: "Main menu",
-                    value: 'mainMenu'
+                    value: appMenu
                 },
             ]
         }
@@ -65,7 +71,7 @@ const mainMenu = async (menu) => {
             choices: [
                 {
                     name: "View roles",
-                    value: 'showRoles'
+                    value: showRoleTable
                 },
                 {
                     name: "Add role",
@@ -77,7 +83,7 @@ const mainMenu = async (menu) => {
                 },
                 {
                     name: "Main menu",
-                    value: 'mainMenu'
+                    value: appMenu
                 },
             ]
         }
@@ -91,7 +97,7 @@ const mainMenu = async (menu) => {
             choices: [
                 {
                     name: "View departments",
-                    value: showDepartments
+                    value: showDepartmentTable
                 },
                 {
                     name: "Add department",
@@ -99,11 +105,11 @@ const mainMenu = async (menu) => {
                 },
                 {
                     name: "Edit department",
-                    value: 'editRole'
+                    value: 'editDepartment'
                 },
                 {
                     name: "Main menu",
-                    value: 'mainMenu'
+                    value: appMenu
                 },
             ]
         }
@@ -129,7 +135,7 @@ const mainMenu = async (menu) => {
                 },
                 {
                     name: "Exit application",
-                    value: 'appExit'
+                    value: exitApp
                 }
             ]
 
@@ -138,6 +144,71 @@ const mainMenu = async (menu) => {
     return await inquirer.prompt({...await inquirer.prompt(mainMenu)}.main)
 }
     
+ 
+
+const showDepartmentTable = async () => {
+    console.clear()
+    let table = new Table({
+        head: ['ID', 'Deparment']
+    })
+    return await db.departments.getAll()
+    .then(data => {
+        data.map((i) => {
+            table.push({ 
+                name:`${i.name}`, 
+                value: `${i.id}`
+            })
+        })
+    })
+    .then(() => {
+        console.info(table.toString())
+    })
+    .then(() => {
+        return appMenu('departmentMenu')
+    })
+    .catch((err) => console.info(err))
+}
+
+const listRoles = async () => {
+    let list = [];
+    return await db.roles.getAll()
+    .then(data => {
+        data.map((i) => {
+            list.push({ 
+                name:`${i.title}`, 
+                value: `${i.id}`
+            })
+        })
+    })
+    .then(() => {
+        return list
+    })
+}
+
+const showRoleTable = async () => {
+    console.clear()
+    var table = new Table({
+        head: ['Role', 'Department', 'Salary']
+    })
+   
+    return await db.roles.getAllInfo()
+    .then(data => {
+        table.push(...data.map((i) => {
+            return [`${i.title}`, 
+            `${i.name}`, 
+            `$${usd.format(i.salary)}`
+            ]
+        }))
+    })
+    .then(() => {
+        console.info(table.toString())
+    })
+    .then(() => {
+        return appMenu('roleMenu')
+    })
+    .catch((err) => console.info(err))
+}
+
 const createEmployee = async () => {
 
     const employeeNameQuestions = await inquirer.prompt([
@@ -158,7 +229,7 @@ const createEmployee = async () => {
             type: "list",
             name: "role_id",
             message: "Role:",
-            choices: await getRoles()
+            choices: await listRoles()
         }
     ])
 
@@ -167,78 +238,47 @@ const createEmployee = async () => {
             type: "list",
             name: "manager_id",
             message: "Direct Manager:",
-            choices: await getDeptMgrsByRole(employeeRoleQuestions.role_id)
+            choices: await listDeptMgrsByRole(employeeRoleQuestions.role_id)
         }
     ])
 
-    db.employees.create({
-        ...employeeNameQuestions, 
-        ...employeeRoleQuestions, 
-        ...employeeManagerQuestions})
+    // db.employees.create({
+    //     ...employeeNameQuestions, 
+    //     ...employeeRoleQuestions, 
+    //     ...employeeManagerQuestions})
 
+    return appMenu('employee')
 
+}  
 
-}   
-
-
-
-
-
-
-
-
-
-const showDepartments = async () => {
-    let list = []
-    return await db.departments.getAll()
+const showEmployeeTable = async () => {
+    console.clear()
+    let table = new Table({
+        head: ['Role', 'Title', 'Department', 'Salary']
+    })
+    return await db.employees.getAllInfo()
     .then(data => {
-        data.map((i) => {
-            list.push({ 
-                name:`${i.name}`, 
-                value: `${i.id}`
-            })
-        })
+        table.push(...data.map((i) => {
+            return [`${i.first_name} ${i.last_name}`,
+            `${i.role}`,
+             `${i.department}`,
+            
+            `$${usd.format(i.salary)}`
+            ]
+        
+        }));
     })
     .then(() => {
-        return list
-    })
-}
-
-const getRoles = async () => {
-    let list = []
-    return await db.roles.getAll()
-    .then(data => {
-        data.map((i) => {
-            list.push({ 
-                name:`${i.title}`, 
-                value: `${i.id}`
-            })
-        })
+        console.info(table.toString())
     })
     .then(() => {
-        return list
+        return appMenu('employeeMenu')
     })
+    .catch((err) => console.info(err))
 }
 
 
-const showEmployees = async () => {
-    let list = []
-    return await db.employees.getAll()
-    .then(data => {
-        data.map((i) => {
-            list.push({ 
-                name:`${i.name}`, 
-                value: `${i.id}`
-            })
-        })
-    })
-    .then(() => {
-        return list
-    })
-}
-
-
-const getDeptMgrsByRole = async (role) => {
+const listDeptMgrsByRole = async (role) => {
     let list = []
     return await db.departments.getManagersByRole(role)
     .then(data => {
@@ -251,28 +291,6 @@ const getDeptMgrsByRole = async (role) => {
     })
     .then(() => {
         return list
-    })
-}
-
-
-
-
-const showRoles = async () => {
-    var table = new Table({
-        head: ['Role', 'Department', 'Salary']
-    })
-   
-    return await db.roles.getAllInfo()
-    .then(data => {
-        table.push(...data.map((i) => {
-            return [`${i.title}`, 
-            `${i.name}`, 
-            `$${usd.format(i.salary)}`
-            ]
-        }))
-    })
-    .then(() => {
-        return table.toString()
     })
 }
 
