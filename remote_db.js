@@ -121,8 +121,8 @@ const roles = {
         return rows
     },
 
-    create : async (title, salary, department_id) => {
-        await db.query(`INSERT INTO role (title, salary, department_id) VALUES ('${title}', '${salary}', '${department_id}')`)
+    create : async (role) => {
+        await db.query(`INSERT INTO role (title, salary, department_id) VALUES ('${role.title}', '${role.salary}', '${role.department_id}')`)
     },
 
     getAllInfo : async (id) => {

@@ -5,10 +5,10 @@ const usd = new Intl.NumberFormat('en-US');
 const ui = new inquirer.ui.BottomBar();
 
 
-const appMenu = async (menu) => {
-    var menu = menu ? menu : 'mainMenu'
+const appMenu = async () => {
+
     let choice = await mainMenu()
-    console.info(await choice.action())
+    await choice.action()
     
     
     // switch (choice.action) {
@@ -35,7 +35,7 @@ const exitApp = async () => {
 }
 
 
-const mainMenu = async () => {
+const mainMenu = async (userMenu) => {
     
     const employeeMenu = [
         {
@@ -75,7 +75,7 @@ const mainMenu = async () => {
                 },
                 {
                     name: "Add role",
-                    value: 'createRole'
+                    value: createRole
                 },
                 {
                     name: "Edit role",
@@ -101,7 +101,7 @@ const mainMenu = async () => {
                 },
                 {
                     name: "Add department",
-                    value: 'createDepartment'
+                    value: createDepartment
                 },
                 {
                     name: "Edit department",
@@ -141,7 +141,18 @@ const mainMenu = async () => {
 
         }
     ]
-    return await inquirer.prompt({...await inquirer.prompt(mainMenu)}.main)
+    switch(userMenu) {
+        case 'departmentMenu':
+            return await inquirer.prompt(departmentMenu).main
+        case 'employeeMenu':
+            return await inquirer.prompt(employeeMenu).main
+        case 'roleMenu':
+            return await inquirer.prompt(roleMenu).main
+        default:
+            return inquirer.prompt({...await inquirer.prompt(userMenu? userMenu: mainMenu)}.main)
+    }
+
+    
 }
     
  
@@ -164,7 +175,7 @@ const showDepartmentTable = async () => {
         console.info(table.toString())
     })
     .then(() => {
-        return appMenu('departmentMenu')
+        return mainMenu('departmentMenu')
     })
     .catch((err) => console.info(err))
 }
@@ -185,6 +196,23 @@ const listRoles = async () => {
     })
 }
 
+const listDepartments = async () => {
+    let list = [];
+    return await db.departments.getAll()
+    .then(data => {
+        data.map((i) => {
+            list.push({ 
+                name:`${i.name}`, 
+                value: `${i.id}`
+            })
+        })
+    })
+    .then(() => {
+        return list
+    })
+}
+
+
 const showRoleTable = async () => {
     console.clear()
     var table = new Table({
@@ -204,7 +232,7 @@ const showRoleTable = async () => {
         console.info(table.toString())
     })
     .then(() => {
-        return appMenu('roleMenu')
+        return mainMenu('roleMenu')
     })
     .catch((err) => console.info(err))
 }
@@ -242,14 +270,72 @@ const createEmployee = async () => {
         }
     ])
 
-    // db.employees.create({
-    //     ...employeeNameQuestions, 
-    //     ...employeeRoleQuestions, 
-    //     ...employeeManagerQuestions})
+    db.employees.create({
+        ...employeeNameQuestions, 
+        ...employeeRoleQuestions, 
+        ...employeeManagerQuestions})
 
-    return appMenu('employee')
+    return mainMenu('employeeMenu')
 
 }  
+
+
+const createRole = async () => {
+
+    const roleTitleQuestions = await inquirer.prompt([
+        {
+            type: "input",
+            name: "title",
+            message: "Role title:"
+        },
+    ])
+
+    const roleSalaryQuestions = await inquirer.prompt([
+        {   
+            type: "Input",
+            name: "salary",
+            message: "Salary:",
+        }
+    ])
+
+    const roleDepartmentQuestions = await inquirer.prompt([
+        {   
+            type: "list",
+            name: "department_id",
+            message: "Department:",
+            choices: await listDepartments()
+        }
+    ])
+
+    await db.roles.create({
+        ...roleTitleQuestions,
+        ...roleSalaryQuestions,
+        ...roleDepartmentQuestions,
+ 
+    })
+    .then(() => mainMenu('roleMenu'))
+    .catch((err) => console.log(err))
+}
+
+const createDepartment = async () => {
+
+    const departmentNameQuestions = await inquirer.prompt([
+        {
+            type: "input",
+            name: "department_name",
+            message: "Department title:"
+        },
+    ])
+
+    db.roles.create({
+        ...departmentNameQuestions
+    })
+
+    return mainMenu('departmentMenu')
+
+}
+
+
 
 const showEmployeeTable = async () => {
     console.clear()
@@ -272,7 +358,7 @@ const showEmployeeTable = async () => {
         console.info(table.toString())
     })
     .then(() => {
-        return appMenu('employeeMenu')
+        return mainMenu('employeeMenu')
     })
     .catch((err) => console.info(err))
 }
@@ -300,7 +386,7 @@ const listDeptMgrsByRole = async (role) => {
 export default { appMenu }
 
 const todo = `
-viewAllEmployees, 
+
 addDepartment, 
 addRole, 
 updateEmployee`
