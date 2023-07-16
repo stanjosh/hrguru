@@ -16,7 +16,7 @@ const employees = {
     create : async (employee) => {
         await db.query(`INSERT INTO employee \
         (first_name, last_name, role_id, manager_id) VALUES \
-        ('${employee.first_name}', '${employee.last_name}', '${employee.role_id}', '${employee.manager_id}')`)
+        ("${employee.first_name}", "${employee.last_name}", "${employee.role_id}", "${employee.manager_id}")`)
     },
 
     getByRole : async (role) => {
@@ -93,7 +93,8 @@ const employees = {
                 department.name as 'department',
                 department.id,
                 role.department_id,
-                role.id
+                role.id as 'role_id',
+                employee.id
             from 
                 employee
             left join 
@@ -104,10 +105,28 @@ const employees = {
                 department
             on
                 department.id = role.department_id
+            where
+                employee.id <> 'null'
             `
         )
         return rows
+    },
+
+    updateInfo : async (data) => {
+        await db.query(`
+        update
+            employee
+        set
+            first_name = '${data.first_name}',
+            last_name = '${data.last_name}',
+            role_id = '${data.role_id}',
+            manager_id = '${data.manager_id}'
+        where
+            id = ${data.id}
+
+        `)
     }
+
 }
 
 const roles = {
@@ -215,8 +234,10 @@ const departments = {
         return rows
     },
 
-    create : async (name) => {
-        await db.query(`INSERT INTO department VALUES (name, '${name}')`)
+    create : async (department) => {
+        console.log(department)
+        await db.query(`INSERT INTO department (name) VALUES ('${department.name}')`)
+        .catch((err) => console.log(err))
     },
 
 
