@@ -30,9 +30,6 @@ const appMenu = async (state, message) => {
     
 }
 
-
-
-
 const employeeMenu = async () => {
     let userMenu = {
         type: "list",
@@ -50,6 +47,10 @@ const employeeMenu = async () => {
             {
                 name: "Edit employee",
                 value: editEmployee
+            },
+            {
+                name: "Delete employee",
+                value: removeEmployee
             },
             {
                 name: "Main menu",
@@ -76,7 +77,11 @@ const roleMenu = async () => {
             },
             {
                 name: "Edit role",
-                value: 'editRole'
+                value: editRole
+            },
+            {
+                name: "Remove role",
+                value: removeRole
             },
             {
                 name: "Main menu",
@@ -165,7 +170,7 @@ const createEmployee = async () => {
             type: "list",
             name: "role_id",
             message: "Role:",
-            choices: await listRoles()
+            choices: await listAllRoles()
         }
     ])
 
@@ -174,14 +179,23 @@ const createEmployee = async () => {
             type: "list",
             name: "manager_id",
             message: "Direct Manager:",
-            choices: await listDeptMgrsByRole(employeeRoleQuestions.role_id)
+            choices: [...await listDeptMgrsByRole(employeeRoleQuestions.role_id),
+                ...await listEmployeesByDepartment('executive'),
+                {
+                name:`No direct manager`, 
+                value: ''
+                }
+            ]
         }
     ])
 
-    db.employees.create({
+    let employee = {
         ...employeeNameQuestions, 
         ...employeeRoleQuestions, 
-        ...employeeManagerQuestions})
+        ...employeeManagerQuestions}
+    console.log(employee)
+    db.employees.create(employee)
+
     .then(() => {
         let message = (`Employee file for ${employeeNameQuestions.first_name} ${employeeNameQuestions.last_name} created.`);
         showEmployeeTable(message)
@@ -221,7 +235,7 @@ const editEmployee = async () => {
             type: "list",
             name: "role_id",
             message: "Role:",
-            choices: await listRoles()
+            choices: await listAllRoles()
         }
     ])
 
@@ -230,7 +244,12 @@ const editEmployee = async () => {
             type: "list",
             name: "manager_id",
             message: "Direct Manager:",
-            choices: await listDeptMgrsByRole(employeeRoleQuestions.role_id)
+            choices: [...await listDeptMgrsByRole(employeeRoleQuestions.role_id),
+                {
+                name:`No direct manager`, 
+                value: `null`
+                }
+            ]
         }
     ])
     let employee = {
@@ -246,6 +265,69 @@ const editEmployee = async () => {
     .catch((err) => console.log(err))
 }
 
+const removeEmployee = async () => {
+    console.clear()
+    let message = "Operation cancelled."
+
+
+    const employee = await inquirer.prompt([
+        {   
+            type: "list",
+            name: "id",
+            message: "DELETE employee:",
+            choices: await listAllEmployees(),
+        }
+    ])
+
+    const confirm = await inquirer.prompt([
+        {
+            type: "confirm",
+            name: "choice",
+            message: `Are you sure you want to delete employee ${employee.id}?`
+        }
+    ])
+
+    let choices = {...employee, ...confirm}
+    if (choices.choice) {
+        await db.employees.remove(employee.id)
+        message = `Employee ${employee.id} deleted.`
+    }    
+    
+    showEmployeeTable(message)
+}
+
+
+//todo: make the role name show on confimation dialogue
+const removeRole = async () => {
+    console.clear()
+    let message = "Operation cancelled."
+
+
+    const role = await inquirer.prompt([
+        {   
+            type: "list",
+            name: "id",
+            message: "DELETE role:",
+            choices: await listAllRoles(),
+        }
+    ])
+
+    const confirm = await inquirer.prompt([
+        {
+            type: "confirm",
+            name: "choice",
+            message: `Are you sure you want to delete role ${await db.roles.getById(role.id).title}?`
+        }
+    ])
+
+    let choices = {...role, ...confirm}
+    if (choices.choice) {
+        await db.employees.remove(role.id)
+        message = `Role ${role.id} deleted.`
+    }    
+    
+    showEmployeeTable(message)
+}
 
 const createRole = async () => {
     console.clear()
@@ -283,6 +365,56 @@ const createRole = async () => {
     let message = `Role '${roleTitleQuestions.title}' created.`
     showRoleTable(message)
 }
+
+const editRole = async () => {
+    console.clear()
+    const roleIdQuestions = await inquirer.prompt([
+        {   
+            type: "list",
+            name: "id",
+            message: "Role:",
+            choices: await listAllRoles()
+        }
+    ])
+
+    const roleTitleQuestions = await inquirer.prompt([
+        {
+            type: "input",
+            name: "title",
+            message: "Role title:"
+        },
+    ])
+
+    const roleSalaryQuestions = await inquirer.prompt([
+        {   
+            type: "Input",
+            name: "salary",
+            message: "Salary:",
+        }
+    ])
+
+    const roleDepartmentQuestions = await inquirer.prompt([
+        {   
+            type: "list",
+            name: "department_id",
+            message: "Department:",
+            choices: await listDepartments()
+        }
+    ])
+
+    await db.roles.updateInfo({
+        ...roleIdQuestions,
+        ...roleTitleQuestions,
+        ...roleSalaryQuestions,
+        ...roleDepartmentQuestions,
+ 
+    })
+    let message = `Role '${roleTitleQuestions.title}' edited.`
+    showRoleTable(message)
+}
+
+
+
 
 const createDepartment = async () => {
     console.clear()
@@ -327,13 +459,29 @@ const showDepartmentTable = async (message='') => {
     })
 }
 
-const listRoles = async () => {
+const listAllRoles = async () => {
     let list = [];
     return await db.roles.getAll()
     .then(data => {
         data.map((i) => {
             list.push({ 
                 name:`${i.title}`, 
+                value: `${i.id}`
+            })
+        })
+    })
+    .then(() => {
+        return list
+    })
+}
+
+const listEmployeesByDepartment = async (department) => {
+    let list = []
+    return await db.employees.getByDepartment(department)
+    .then(data => {
+        data.map((i) => {
+            list.push({ 
+                name:`${i.first_name} ${i.last_name}, ${i.role} in ${i.department}`, 
                 value: `${i.id}`
             })
         })
@@ -429,8 +577,8 @@ const showEmployeeTable = async (message='') => {
     .then(data => {
         table.push(...data.map((i) => {
             return [`${i.first_name} ${i.last_name}`,
-            `${i.role}`,
-            `${i.department}`,
+            `${i.title}`,
+            `${i.name}`,
             `$${usd.format(i.salary)}`
             ]
         
