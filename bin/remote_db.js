@@ -103,7 +103,7 @@ const employees = {
             `
         )
         return rows
-    }
+    },
 
 
     getById : async (id) => {
@@ -231,13 +231,13 @@ const roles = {
     getAllInfo : async (id) => {
         let [rows, fields] = await db.query(
             `SELECT
-            *
+                *
             FROM
-            role
+                role
             JOIN
-            department
+                department
             ON
-            role.department_id = department.id
+                role.department_id = department.id
             
             `
         )
@@ -331,10 +331,36 @@ const departments = {
         return rows
     },
 
+    getBudget : async (department_id) => {
+        let [rows, fields] = await db.query(
+            `
+            select
+                *
+            from 
+                employee
+            join
+                role
+            on
+                employee.role_id = role.id
+            join
+                department
+            on
+                department.id = ${department_id}
+            where
+                employee.role_id in (select role.id from role where role.department_id = ${department_id})
+            
+            `
+        )
+        return rows
+    },
+
     create : async (department) => {
         await db.query(`INSERT INTO department (name) VALUES ('${department.name}')`)
     },
 
+    edit : async (department) => {
+        await db.query(`update department set name = '${department.name}' where department.id = ${department.id}`)
+    },
 
 }
 

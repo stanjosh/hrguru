@@ -32,7 +32,7 @@ const appMenu = async (state, message='') => {
 }
 
 const employeeMenu = async (message='') => {
-    ui.log.write(message)
+    
     let userMenu = {
         type: "list",
         name: "action",
@@ -60,11 +60,12 @@ const employeeMenu = async (message='') => {
             },
         ]
     }
+    ui.log.write(message)
     return {...await inquirer.prompt(userMenu)}.action()
 }
 
 const roleMenu = async (message='') => {
-    ui.log.write(message)
+    
     let userMenu = {
         type: "list",
         name: "action",
@@ -92,15 +93,15 @@ const roleMenu = async (message='') => {
             },
         ]
     }
+    ui.log.write(message)
     return {...await inquirer.prompt(userMenu)}.action()
 }
 
 const departmentMenu = async (message='') => {
-    ui.log.write(message)
     let userMenu = {
         type: "list",
         name: "action",
-        message: "department Menu",
+        message: "Department Menu",
         choices: [
             {
                 name: "View departments",
@@ -112,11 +113,15 @@ const departmentMenu = async (message='') => {
             },
             {
                 name: "Edit department",
-                value: 'editDepartment'
+                value: editDepartment
             },
             {
                 name: "Delete department",
                 value: removeDepartment
+            },
+            {
+                name: "Department Budget",
+                value: departmentBudget
             },
             {
                 name: "Main menu",
@@ -124,12 +129,13 @@ const departmentMenu = async (message='') => {
             },
         ]
     }
+    ui.log.write(message)
     return {...await inquirer.prompt(userMenu)}.action()
 }
 
 const mainMenu = async (message='') => {
     console.clear()
-    ui.log.write(message)
+
     let userMenu = {
         type: "list",
         name: "action",
@@ -153,6 +159,7 @@ const mainMenu = async (message='') => {
             }
         ]
     }
+    ui.log.write(message)
     return {...await inquirer.prompt(userMenu)}.action()
 }
 
@@ -451,6 +458,37 @@ const createDepartment = async () => {
     })
 }
 
+const editDepartment = async () => {
+    console.clear()
+    const roleDepartmentQuestions = await inquirer.prompt([
+        {   
+            type: "list",
+            name: "id",
+            message: "Department:",
+            pageSize: '25',
+            choices: await listAllDepartments()
+        }
+    ])
+
+    const departmentNameQuestions = await inquirer.prompt([
+        {
+            type: "input",
+            name: "name",
+            message: "Department title:"
+        },
+    ])
+
+    db.departments.edit({
+        ...roleDepartmentQuestions,
+        ...departmentNameQuestions
+    })
+    .then(() => {
+        let message = `Department '${departmentNameQuestions.name}' edited.`
+        showDepartmentTable(message)
+    })
+    .catch((err) => console.log(err))
+}
+
 const removeDepartment = async () => {
     console.clear()
     let message = "Operation cancelled."
@@ -482,6 +520,31 @@ const removeDepartment = async () => {
     
     showRoleTable(message)
 }
+
+
+const departmentBudget = async () => {
+    console.clear()
+    let message = "Operation cancelled."
+
+
+    const department = await inquirer.prompt([
+        {   
+            type: "list",
+            name: "id",
+            message: "Get department budget for:",
+            pageSize: '25',
+            choices: await listAllDepartments(),
+        }
+    ])
+
+
+    let department_id = department.id
+
+    showDepartmentBudgetTable(department_id)
+    
+}
+
+
 
 const listAllRoles = async () => {
     let list = [];
@@ -564,7 +627,35 @@ const listAllEmployees = async () => {
     
 }
 
-
+const showDepartmentBudgetTable = async (department_id, message='') => {
+    console.clear()
+    var table = new Table({
+        head: ['Role', 'Department', 'Name', 'Salary']
+    })
+    return await db.departments.getBudget(department_id)
+    .then(data => {
+        let totalSalary = 0;
+        table.push(...data.map((i) => {
+            totalSalary += parseInt(i.salary)
+            return [`${i.title}`,
+            `${i.name}`,
+            `${i.first_name} ${i.last_name}`,
+            `$${usd.format(i.salary)}`
+            ]
+        }));
+        table.push([
+            "", "", "", `$${usd.format(totalSalary)}`
+        ]);
+    })
+    .then(() => {
+        console.info(table.toString())
+    })
+    .catch((err) => console.log(err))
+    .then(() => {
+        appMenu('departmentMenu', message)
+    })
+    .catch((err) => console.log(err))
+}
 
 const showRoleTable = async (message='') => {
     console.clear()
@@ -574,13 +665,14 @@ const showRoleTable = async (message='') => {
     return await db.roles.getAllInfo()
     .then(data => {
         table.push(...data.map((i) => {
-            return [`${id}`,
+            return [`${i.id}`,
             `${i.title}`, 
             `${i.name}`, 
             `$${usd.format(i.salary)}`
             ]
         }))
     })
+    .catch((err) => console.log(err))
     .then(() => {
         console.info(table.toString())
     })
