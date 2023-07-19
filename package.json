@@ -2,10 +2,10 @@
   "name": "hrguru",
   "version": "1.0.0",
   "description": "Employee management via the command line",
-  "main": "index.js",
+  "main": "bin/index.js",
   "type": "module",
   "scripts": {
-    "start": "node --inspect index.js"
+    "run": "node index.js"
   },
   "repository": {
     "type": "git",
@@ -22,7 +22,7 @@
     "inquirer": "^9.2.7",
     "mysql2": "^3.5.0"
   },
-  "devDependencies": {
-    "jest": "^29.6.1"
+  "bin": {
+    "hrguru": "./bin/index.js"
   }
 }

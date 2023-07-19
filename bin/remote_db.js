@@ -14,7 +14,6 @@ const db = mysql2.createPool({
 
 const employees = {
     remove : async (id) => {
-        console.log(id)
         await db.query(`
         delete
         from
@@ -22,13 +21,16 @@ const employees = {
         where
             id = ${id}
         `)
-        .catch((err) => console.log(err))
     },
 
     create : async (employee) => {
-        await db.query(`INSERT INTO employee \
-        (first_name, last_name, role_id, manager_id) VALUES \
-        ("${employee.first_name}", "${employee.last_name}", "${employee.role_id}", ${employee.manager_id ? '"' + employee.manager_id + '"' : 'null'})`)
+        await db.query(`
+        INSERT INTO
+            employee
+            (first_name, last_name, role_id, manager_id)
+        VALUES
+            ("${employee.first_name}", "${employee.last_name}", "${employee.role_id}", ${employee.manager_id ? '"' + employee.manager_id + '"' : 'null'})
+        `)
 
     },
 
@@ -72,11 +74,36 @@ const employees = {
             where
                 department.name like '%${department}%'
             `)
-            .catch((err) => console.log(err))
         return rows
     },
     
-
+    getByManager : async (manager_id) => {
+        let [rows, fields] = await db.query(
+            `
+            select 
+                *,
+                role.title as 'role',
+                department.name as 'department',
+                department.id,
+                role.department_id,
+                role.id,
+                employee.id                          
+            from 
+                employee
+            left join 
+                role 
+            on
+                role.id = employee.role_id
+            left join
+                department
+            on
+                department.id = role.department_id
+            where
+                employee.manager_id = ${manager_id}'
+            `
+        )
+        return rows
+    }
 
 
     getById : async (id) => {
@@ -114,28 +141,34 @@ const employees = {
         let [rows, fields] = await db.query(
             `
             select 
-                *,
+                a.first_name,
+                a.last_name,
+                a.id as 'employee_id',
+                a.manager_id,
                 role.title as 'role',
                 department.name as 'department',
-                department.id,
+                department.id as 'department_id',
                 role.department_id,
-                role.id,
-                employee.id                          
+                role.id as 'role_id',
+                role.salary,
+                b.id as 'manager_employee_id',
+                b.last_name as 'manager'
             from 
-                employee
+                employee a
             left join 
                 role 
             on
-                role.id = employee.role_id
+                role.id = a.role_id
             left join
                 department
             on
                 department.id = role.department_id
-
-            
+            left join
+                employee b
+            on
+                b.id = a.manager_id
             `
         )
-        .catch((err) => {console.log(err); console.log(rows)})
         return rows
     },
 
@@ -147,7 +180,7 @@ const employees = {
             first_name = '${data.first_name}',
             last_name = '${data.last_name}',
             role_id = '${data.role_id}',
-            manager_id = '${data.manager_id}'
+            manager_id = ${data.manager_id ? "'" + data.manager_id + "'" : 'null'}
         where
             id = ${data.id}
 
@@ -174,10 +207,11 @@ const roles = {
         set
             title = '${data.title}',
             salary = '${data.salary}',
-            department_id = '${data.department_id}',
+            department_id = '${data.department_id}'
         where
-            id = ${data.id}
+            id = '${data.id}'
         `)
+
     },
 
     getAll : async () => {
@@ -185,10 +219,9 @@ const roles = {
         return rows
     },
 
-    getById : async (id) => {
+    getTitleById : async (id) => {
         let [rows, fields] = await db.query(`SELECT * FROM role WHERE id = ${id}`)
-        console.log(rows[0])
-        return rows[0]
+        return rows[0].title
     },
 
     create : async (role) => {
@@ -257,24 +290,30 @@ const departments = {
             `
 
             select 
-                employee.id,
+                employee.id as 'employee_id',
                 employee.first_name,
                 employee.last_name,
-                department.id,
-                role.department_id,
+                department.id as 'department_id',
+                role.department_id as 'role_department_id',
                 role.title as 'role',
-                department.name as 'department'
+                department.name as 'department',
+                role.id as 'role_id'
             from
-                employee, department, role
+                employee
+            join
+                department
+            on
+                department.id = (select department_id from role where role.id = ${role})
+            join
+                role
+            on  
+                role.department_id = department.id
+                and role.title like '%manager%'
             where
-                employee.role_id = role.id
-                and role.department_id = department.id
-                and role.title like "%manager%"           
-                and department.id = (select department_id from role where id = ${role})
-
+                employee.role_id = role.id    
+                
             `
         )
-        console.log(rows)
         return rows
     },
 
@@ -293,9 +332,7 @@ const departments = {
     },
 
     create : async (department) => {
-        console.log(department)
         await db.query(`INSERT INTO department (name) VALUES ('${department.name}')`)
-        .catch((err) => console.log(err))
     },
 
 
