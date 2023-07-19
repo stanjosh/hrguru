@@ -40,7 +40,7 @@ from within its folder. You will be presented with a menu of options. Select one
 
 ![working!](./assets/working.gif)
 
-![complete!](./assets/fullscreenshot.png)
+![complete!](./assets/screenshot.png)
 
 ## Database
 
