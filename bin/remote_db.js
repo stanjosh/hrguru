@@ -231,7 +231,12 @@ const roles = {
     getAllInfo : async (id) => {
         let [rows, fields] = await db.query(
             `SELECT
-                *
+                role.title,
+                role.id as 'role_id',
+                role.salary,
+                role.department_id as 'role_department_id',
+                department.id as 'department_id',
+                department.name
             FROM
                 role
             JOIN
@@ -262,7 +267,7 @@ const departments = {
 
     getById : async (id) => {
         let [rows, fields] = await db.query(`SELECT * FROM department WHERE id = ${id}`)
-        return rows
+        return rows[0].name
     },
 
     getDepartmentManagers : async (department) => {
@@ -280,6 +285,7 @@ const departments = {
                 employee.role_id = role.id
                 and department.id = ${department}
                 and role.title like "%manager%"
+                or role.title like "%director%"
             `
         )
         return rows

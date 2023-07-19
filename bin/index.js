@@ -508,7 +508,7 @@ const removeDepartment = async () => {
         {
             type: "confirm",
             name: "choice",
-            message: `Are you sure you want to delete department ${await db.departments.getTitleById(department.id)}?`
+            message: `Are you sure you want to delete department ${await db.departments.getById(department.id)}?`
         }
     ])
 
@@ -518,7 +518,7 @@ const removeDepartment = async () => {
         message = `Department ${department.id} deleted.`
     }    
     
-    showRoleTable(message)
+    showDepartmentTable(message)
 }
 
 
@@ -665,7 +665,7 @@ const showRoleTable = async (message='') => {
     return await db.roles.getAllInfo()
     .then(data => {
         table.push(...data.map((i) => {
-            return [`${i.id}`,
+            return [`${i.role_id}`,
             `${i.title}`, 
             `${i.name}`, 
             `$${usd.format(i.salary)}`
